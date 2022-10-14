@@ -39,8 +39,7 @@ func (h hashMap[K, V]) sdbmHash(data []byte) int {
 }
 
 func (h hashMap[K, V]) Guardar(clave K, dato V) {
-	//TODO implement me
-	panic("implement me")
+	//tu vieja
 }
 
 func (h hashMap[K, V]) Pertenece(clave K) bool {
