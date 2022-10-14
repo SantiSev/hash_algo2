@@ -314,7 +314,7 @@ func ejecutarPruebaVolumen(b *testing.B, n int) {
 	claves := make([]string, n)
 	valores := make([]int, n)
 
-	/* Inserta 'n' parejas en el hash */
+	/* Inserta 'n' parejas en el hashMap */
 	for i := 0; i < n; i++ {
 		valores[i] = i
 		claves[i] = fmt.Sprintf("%08d", i)
@@ -440,7 +440,7 @@ func TestIteradorNoLlegaAlFinal(t *testing.T) {
 }
 
 func TestPruebaIterarTrasBorrados(t *testing.T) {
-	t.Log("Prueba de caja blanca: Esta prueba intenta verificar el comportamiento del hash abierto cuando " +
+	t.Log("Prueba de caja blanca: Esta prueba intenta verificar el comportamiento del hashMap abierto cuando " +
 		"queda con listas vacías en su tabla. El iterador debería ignorar las listas vacías, avanzando hasta " +
 		"encontrar un elemento real.")
 
@@ -477,7 +477,7 @@ func ejecutarPruebasVolumenIterador(b *testing.B, n int) {
 	claves := make([]string, n)
 	valores := make([]int, n)
 
-	/* Inserta 'n' parejas en el hash */
+	/* Inserta 'n' parejas en el hashMap */
 	for i := 0; i < n; i++ {
 		claves[i] = fmt.Sprintf("%08d", i)
 		valores[i] = i
