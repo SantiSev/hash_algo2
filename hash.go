@@ -15,11 +15,10 @@ type hashMap[K comparable, V any] struct {
 	longitud  int
 }
 
-func convertir[K comparable](T any) uint64 {
-	fmt.Println(T)
+func (h hashMap[K, V]) convertir(T any) int {
 	dato := convertirABytes[K](T)
 	fmt.Println(dato)
-	index := sdbmHash(dato)
+	index := h.sdbmHash(dato)
 	fmt.Println(index)
 	return index
 }
@@ -28,19 +27,19 @@ func convertirABytes[K comparable](clave any) []byte {
 	return []byte(fmt.Sprintf("%v", clave))
 }
 
-func sdbmHash(data []byte) uint64 {
+func (h hashMap[K, V]) sdbmHash(data []byte) int {
+	// documentacion: https://www.programmingalgorithms.com/algorithm/sdbm-hash/c/
 	var hash uint64
 
 	for _, b := range data {
 		hash = uint64(b) + (hash << 6) + (hash << 16) - hash
 	}
 
-	return hash % 90
+	return int(hash) % h.longitud
 }
 
 func (h hashMap[K, V]) Guardar(clave K, dato V) {
-	//TODO implement me
-	panic("implement me")
+	//tu vieja
 }
 
 func (h hashMap[K, V]) Pertenece(clave K) bool {
