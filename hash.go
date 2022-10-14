@@ -17,9 +17,7 @@ type hashMap[K comparable, V any] struct {
 
 func (h hashMap[K, V]) convertir(T any) int {
 	dato := convertirABytes[K](T)
-	fmt.Println(dato)
 	index := h.sdbmHash(dato)
-	fmt.Println(index)
 	return index
 }
 
@@ -35,10 +33,10 @@ func (h hashMap[K, V]) sdbmHash(data []byte) int {
 		hash = uint64(b) + (hash << 6) + (hash << 16) - hash
 	}
 
-	return int(hash) % h.longitud
+	return int(hash) % len(h.hashArray)
 }
 
-func (h hashMap[K, V]) Guardar(clave K, valor V) {
+func (h *hashMap[K, V]) Guardar(clave K, valor V) {
 	nuevoDato := &hashDato[K, V]{clave: clave, valor: valor}
 	index := h.convertir(clave)
 	h.hashArray[index].InsertarPrimero(*nuevoDato)
@@ -74,7 +72,7 @@ func (h hashMap[K, V]) Obtener(clave K) V {
 	panic("La clave no pertenece al diccionario")
 }
 
-func (h hashMap[K, V]) Borrar(clave K) V {
+func (h *hashMap[K, V]) Borrar(clave K) V {
 	index := h.convertir(clave)
 	subLista := h.hashArray[index]
 	if subLista.EstaVacia() {
@@ -114,7 +112,12 @@ func (h hashMap[K, V]) Iterador() IterDiccionario[K, V] {
 }
 
 func CrearHash[K comparable, V any]() Diccionario[K, V] {
-	return new(hashMap[K, V])
+	h := new(hashMap[K, V])
+	h.hashArray = make([]lista.Lista[hashDato[K, V]], 90)
+	for i := range h.hashArray {
+		h.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
+	}
+	return h
 }
 
 /*
