@@ -6,8 +6,8 @@ import (
 )
 
 type hashDato[K comparable, V any] struct {
-	clave    K
-	variable V
+	clave K
+	valor V
 }
 
 type hashMap[K comparable, V any] struct {
@@ -38,33 +38,74 @@ func (h hashMap[K, V]) sdbmHash(data []byte) int {
 	return int(hash) % h.longitud
 }
 
-func (h hashMap[K, V]) Guardar(clave K, dato V) {
-	//tu vieja
+func (h hashMap[K, V]) Guardar(clave K, valor V) {
+	nuevoDato := &hashDato[K, V]{clave: clave, valor: valor}
+	index := h.convertir(clave)
+	h.hashArray[index].InsertarPrimero(*nuevoDato)
+	h.longitud++
 }
 
 func (h hashMap[K, V]) Pertenece(clave K) bool {
-	//TODO implement me
-	panic("implement me")
+	index := h.convertir(clave)
+	listaIndex := h.hashArray[index]
+	if listaIndex.EstaVacia() {
+		return false
+	} else {
+		for iter := listaIndex.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
+			if iter.VerActual().clave == clave {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (h hashMap[K, V]) Obtener(clave K) V {
-	//TODO implement me
-	panic("implement me")
+	index := h.convertir(clave)
+	subLista := h.hashArray[index]
+	if subLista.EstaVacia() {
+		panic("La clave no pertenece al diccionario")
+	}
+	for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
+		if iter.VerActual().clave == clave {
+			return iter.VerActual().valor
+		}
+	}
+	panic("La clave no pertenece al diccionario")
 }
 
 func (h hashMap[K, V]) Borrar(clave K) V {
-	//TODO implement me
-	panic("implement me")
+	index := h.convertir(clave)
+	subLista := h.hashArray[index]
+	if subLista.EstaVacia() {
+		panic("La clave no pertenece al diccionario")
+	}
+	for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
+		if iter.VerActual().clave == clave {
+			dato := iter.Borrar()
+			h.longitud--
+			return dato.valor
+		}
+	}
+	panic("La clave no pertenece al diccionario")
 }
 
 func (h hashMap[K, V]) Cantidad() int {
-	//TODO implement me
-	panic("implement me")
+	return h.longitud
 }
 
-func (h hashMap[K, V]) Iterar(f func(clave K, dato V) bool) {
-	//TODO implement me
-	panic("implement me")
+func (h hashMap[K, V]) Iterar(f func(clave K, valor V) bool) {
+
+	for _, subLista := range h.hashArray {
+		if !subLista.EstaVacia() {
+			for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
+				dato := iter.VerActual()
+				if !f(dato.clave, dato.valor) {
+					return
+				}
+			}
+		}
+	}
 }
 
 func (h hashMap[K, V]) Iterador() IterDiccionario[K, V] {
@@ -73,7 +114,6 @@ func (h hashMap[K, V]) Iterador() IterDiccionario[K, V] {
 }
 
 func CrearHash[K comparable, V any]() Diccionario[K, V] {
-
 	return new(hashMap[K, V])
 }
 
