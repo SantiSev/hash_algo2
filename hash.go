@@ -18,6 +18,9 @@ type hashMap[K comparable, V any] struct {
 func (h hashMap[K, V]) convertir(T any) int {
 	dato := convertirABytes[K](T)
 	index := h.sdbmHash(dato)
+	if index < 0 {
+		index *= -1
+	}
 	return index
 }
 
@@ -36,9 +39,26 @@ func (h hashMap[K, V]) sdbmHash(data []byte) int {
 	return int(hash) % len(h.hashArray)
 }
 
+func (h *hashMap[K, V]) actualizar(clave K, valorActualizado V) {
+	index := h.convertir(clave)
+	listaIndex := h.hashArray[index]
+	for iter := listaIndex.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
+		if iter.VerActual().clave == clave {
+			iter.Borrar()
+			iter.Insertar(hashDato[K, V]{clave: clave, valor: valorActualizado})
+
+		}
+	}
+
+}
+
 func (h *hashMap[K, V]) Guardar(clave K, valor V) {
 	nuevoDato := &hashDato[K, V]{clave: clave, valor: valor}
 	index := h.convertir(clave)
+	if h.Pertenece(clave) {
+		h.actualizar(clave, valor)
+		return
+	}
 	h.hashArray[index].InsertarPrimero(*nuevoDato)
 	h.longitud++
 }
@@ -58,7 +78,7 @@ func (h hashMap[K, V]) Pertenece(clave K) bool {
 	return false
 }
 
-func (h hashMap[K, V]) Obtener(clave K) V {
+func (h *hashMap[K, V]) Obtener(clave K) V {
 	index := h.convertir(clave)
 	subLista := h.hashArray[index]
 	if subLista.EstaVacia() {
