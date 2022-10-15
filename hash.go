@@ -8,7 +8,7 @@ import (
 
 const (
 	LONGITUD_INICIAL     = 89
-	REDIMENSION_AGRANDAR = 3
+	REDIMENSION_AGRANDAR = 10
 	MINIMO_REDIMENSION   = 4
 )
 
@@ -69,11 +69,11 @@ func (h *hashMap[K, V]) actualizar(clave K, valorActualizado V) {
 
 func (h *hashMap[K, V]) redimensionar(valorARedimensionar int) {
 	redim := new(hashMap[K, V])
-	redim.hashArray = make([]lista.Lista[hashDato[K, V]], LONGITUD_INICIAL)
+	redim.hashArray = make([]lista.Lista[hashDato[K, V]], valorARedimensionar)
 	for i := range redim.hashArray {
 		redim.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
 	}
-	redim.longitud = valorARedimensionar
+	redim.longitud = h.longitud
 	for _, subLista := range h.hashArray {
 		for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
 			datoActual := iter.VerActual()
@@ -93,7 +93,7 @@ func (h *hashMap[K, V]) Guardar(clave K, valor V) {
 
 	h.hashArray[index].InsertarPrimero(*nuevoDato)
 
-	if h.hashArray[index].Largo() > REDIMENSION_AGRANDAR {
+	if h.hashArray[index].Largo() >= REDIMENSION_AGRANDAR {
 		h.redimensionar(proxPrimo(h.longitud * 2))
 	}
 	h.longitud++
@@ -137,7 +137,7 @@ func (h hashMap[K, V]) Borrar(clave K) V {
 	for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
 		if iter.VerActual().clave == clave {
 			dato := iter.Borrar()
-			if len(h.hashArray) >= MINIMO_REDIMENSION*h.Cantidad() {
+			if MINIMO_REDIMENSION*h.Cantidad() <= len(h.hashArray) && MINIMO_REDIMENSION*h.Cantidad() >= LONGITUD_INICIAL {
 				h.redimensionar(proxPrimo(h.longitud / 2))
 			}
 			h.longitud--
