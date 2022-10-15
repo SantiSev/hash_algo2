@@ -3,6 +3,13 @@ package diccionario
 import (
 	"diccionario/lista"
 	"fmt"
+	"math"
+)
+
+const (
+	LONGITUD_INICIAL     = 89
+	REDIMENSION_AGRANDAR = 3
+	MINIMO_REDIMENSION   = 4
 )
 
 type hashDato[K comparable, V any] struct {
@@ -15,6 +22,15 @@ type hashMap[K comparable, V any] struct {
 	longitud  int
 }
 
+type iteradorHash[K comparable, V any] struct {
+	hashEstructura []lista.Lista[hashDato[K, V]]
+	index          int
+	subListaIter   lista.IteradorLista[hashDato[K, V]]
+}
+
+// Implementacion de HashMap
+
+// TODO sacar la func de hashing (y compania) del tda.
 func (h hashMap[K, V]) convertir(T any) int {
 	dato := convertirABytes[K](T)
 	index := h.sdbmHash(dato)
@@ -49,7 +65,22 @@ func (h *hashMap[K, V]) actualizar(clave K, valorActualizado V) {
 
 		}
 	}
+}
 
+func (h *hashMap[K, V]) redimensionar(valorARedimensionar int) {
+	redim := new(hashMap[K, V])
+	redim.hashArray = make([]lista.Lista[hashDato[K, V]], LONGITUD_INICIAL)
+	for i := range redim.hashArray {
+		redim.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
+	}
+	redim.longitud = valorARedimensionar
+	for _, subLista := range h.hashArray {
+		for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
+			datoActual := iter.VerActual()
+			redim.Guardar(datoActual.clave, datoActual.valor)
+		}
+	}
+	h = redim
 }
 
 func (h *hashMap[K, V]) Guardar(clave K, valor V) {
@@ -59,7 +90,12 @@ func (h *hashMap[K, V]) Guardar(clave K, valor V) {
 		h.actualizar(clave, valor)
 		return
 	}
+
 	h.hashArray[index].InsertarPrimero(*nuevoDato)
+
+	if h.hashArray[index].Largo() > REDIMENSION_AGRANDAR {
+		h.redimensionar(proxPrimo(h.longitud))
+	}
 	h.longitud++
 }
 
@@ -101,6 +137,9 @@ func (h *hashMap[K, V]) Borrar(clave K) V {
 	for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
 		if iter.VerActual().clave == clave {
 			dato := iter.Borrar()
+			if h.hashArray[index].Largo() > MINIMO_REDIMENSION*h.Cantidad() {
+				h.redimensionar(proxPrimo(h.longitud))
+			}
 			h.longitud--
 			return dato.valor
 		}
@@ -127,17 +166,72 @@ func (h hashMap[K, V]) Iterar(f func(clave K, valor V) bool) {
 }
 
 func (h hashMap[K, V]) Iterador() IterDiccionario[K, V] {
+	iter := new(iteradorHash[K, V])
+	iter.hashEstructura = h.hashArray
+	return iter
+}
+
+// Implementacion de iter Externo
+
+func (i iteradorHash[K, V]) HaySiguiente() bool {
 	//TODO implement me
 	panic("implement me")
 }
 
+func (i iteradorHash[K, V]) VerActual() (K, V) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (i iteradorHash[K, V]) Siguiente() K {
+	//TODO implement me
+	panic("implement me")
+}
+
+// CrearHash + Otras funciones privadas
+
 func CrearHash[K comparable, V any]() Diccionario[K, V] {
 	h := new(hashMap[K, V])
-	h.hashArray = make([]lista.Lista[hashDato[K, V]], 90)
+	h.hashArray = make([]lista.Lista[hashDato[K, V]], 89)
 	for i := range h.hashArray {
 		h.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
 	}
 	return h
+}
+
+func esPrimo(n int) bool {
+	if n <= 1 {
+		return false
+	}
+	if n <= 3 {
+		return true
+	}
+	if n%2 == 0 || n%3 == 0 {
+		return false
+	}
+	i := 5
+	for i < int(math.Sqrt(float64(n))+1) {
+		if n%i == 0 || n%(i+2) == 0 {
+			return false
+		}
+		i += 6
+	}
+	return true
+}
+
+func proxPrimo(n int) int {
+	if n <= 1 {
+		return 2
+	}
+	primo := n
+	encontrado := false
+	for !encontrado {
+		primo += 1
+		if esPrimo(primo) {
+			encontrado = true
+		}
+	}
+	return primo
 }
 
 /*
