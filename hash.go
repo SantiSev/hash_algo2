@@ -94,7 +94,7 @@ func (h *hashMap[K, V]) Guardar(clave K, valor V) {
 	h.hashArray[index].InsertarPrimero(*nuevoDato)
 
 	if h.hashArray[index].Largo() > REDIMENSION_AGRANDAR {
-		h.redimensionar(proxPrimo(h.longitud))
+		h.redimensionar(proxPrimo(h.longitud * 2))
 	}
 	h.longitud++
 }
@@ -128,7 +128,7 @@ func (h *hashMap[K, V]) Obtener(clave K) V {
 	panic("La clave no pertenece al diccionario")
 }
 
-func (h *hashMap[K, V]) Borrar(clave K) V {
+func (h hashMap[K, V]) Borrar(clave K) V {
 	index := h.convertir(clave)
 	subLista := h.hashArray[index]
 	if subLista.EstaVacia() {
@@ -137,8 +137,8 @@ func (h *hashMap[K, V]) Borrar(clave K) V {
 	for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
 		if iter.VerActual().clave == clave {
 			dato := iter.Borrar()
-			if h.hashArray[index].Largo() > MINIMO_REDIMENSION*h.Cantidad() {
-				h.redimensionar(proxPrimo(h.longitud))
+			if len(h.hashArray) >= MINIMO_REDIMENSION*h.Cantidad() {
+				h.redimensionar(proxPrimo(h.longitud / 2))
 			}
 			h.longitud--
 			return dato.valor
