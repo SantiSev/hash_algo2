@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	LONGITUD_INICIAL     = 89
+	LONGITUD_INICIAL     = 1000
 	REDIMENSION_AGRANDAR = 10
 	MINIMO_REDIMENSION   = 4
 )
@@ -67,21 +67,21 @@ func (h *hashMap[K, V]) actualizar(clave K, valorActualizado V) {
 	}
 }
 
-func (h *hashMap[K, V]) redimensionar(valorARedimensionar int) {
-	redim := new(hashMap[K, V])
-	redim.hashArray = make([]lista.Lista[hashDato[K, V]], valorARedimensionar)
-	for i := range redim.hashArray {
-		redim.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
-	}
-	redim.longitud = h.longitud
-	for _, subLista := range h.hashArray {
-		for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
-			datoActual := iter.VerActual()
-			redim.Guardar(datoActual.clave, datoActual.valor)
-		}
-	}
-	h = redim
-}
+//func (h *hashMap[K, V]) redimensionar(valorARedimensionar int) {
+//	redim := new(hashMap[K, V])
+//	redim.hashArray = make([]lista.Lista[hashDato[K, V]], valorARedimensionar)
+//	for i := range redim.hashArray {
+//		redim.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
+//	}
+//	redim.longitud = h.longitud
+//	for _, subLista := range h.hashArray {
+//		for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
+//			datoActual := iter.VerActual()
+//			redim.Guardar(datoActual.clave, datoActual.valor)
+//		}
+//	}
+//	h = redim
+//}
 
 func (h *hashMap[K, V]) Guardar(clave K, valor V) {
 	nuevoDato := &hashDato[K, V]{clave: clave, valor: valor}
@@ -93,9 +93,9 @@ func (h *hashMap[K, V]) Guardar(clave K, valor V) {
 
 	h.hashArray[index].InsertarPrimero(*nuevoDato)
 
-	if h.hashArray[index].Largo() >= REDIMENSION_AGRANDAR {
-		h.redimensionar(proxPrimo(h.longitud * 2))
-	}
+	//if h.hashArray[index].Largo() >= REDIMENSION_AGRANDAR {
+	//	h.redimensionar(proxPrimo(h.longitud * 2))
+	//}
 	h.longitud++
 }
 
@@ -128,7 +128,7 @@ func (h *hashMap[K, V]) Obtener(clave K) V {
 	panic("La clave no pertenece al diccionario")
 }
 
-func (h hashMap[K, V]) Borrar(clave K) V {
+func (h *hashMap[K, V]) Borrar(clave K) V {
 	index := h.convertir(clave)
 	subLista := h.hashArray[index]
 	if subLista.EstaVacia() {
@@ -137,9 +137,9 @@ func (h hashMap[K, V]) Borrar(clave K) V {
 	for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
 		if iter.VerActual().clave == clave {
 			dato := iter.Borrar()
-			if MINIMO_REDIMENSION*h.Cantidad() <= len(h.hashArray) && MINIMO_REDIMENSION*h.Cantidad() >= LONGITUD_INICIAL {
-				h.redimensionar(proxPrimo(h.longitud / 2))
-			}
+			//if MINIMO_REDIMENSION*h.Cantidad() <= len(h.hashArray) && MINIMO_REDIMENSION*h.Cantidad() >= LONGITUD_INICIAL {
+			//	h.redimensionar(proxPrimo(h.longitud / 2))
+			//}
 			h.longitud--
 			return dato.valor
 		}
@@ -168,31 +168,75 @@ func (h hashMap[K, V]) Iterar(f func(clave K, valor V) bool) {
 func (h hashMap[K, V]) Iterador() IterDiccionario[K, V] {
 	iter := new(iteradorHash[K, V])
 	iter.hashEstructura = h.hashArray
+	for iter.index < len(iter.hashEstructura) && iter.hashEstructura[iter.index].EstaVacia() {
+		iter.index++
+	}
+	if iter.index == len(iter.hashEstructura) {
+		iter.index = 0
+	}
+	iter.subListaIter = iter.hashEstructura[iter.index].Iterador()
 	return iter
 }
 
 // Implementacion de iter Externo
 
 func (i iteradorHash[K, V]) HaySiguiente() bool {
-	//TODO implement me
-	panic("implement me")
+
+	if i.subListaIter == nil {
+		return false
+	}
+	if i.subListaIter.HaySiguiente() {
+		return true
+	}
+
+	for i.hashEstructura[i.index].EstaVacia() {
+		i.index++
+		if i.index == len(i.hashEstructura) {
+			return false
+		}
+	}
+	return true
 }
 
 func (i iteradorHash[K, V]) VerActual() (K, V) {
-	//TODO implement me
-	panic("implement me")
+	if i.subListaIter != nil {
+		return i.subListaIter.VerActual().clave, i.subListaIter.VerActual().valor
+	}
+	panic("El iterador termino de iterar")
 }
 
-func (i iteradorHash[K, V]) Siguiente() K {
-	//TODO implement me
-	panic("implement me")
+func (i *iteradorHash[K, V]) Siguiente() K {
+
+	if i.subListaIter != nil && i.subListaIter.HaySiguiente() {
+		clave := i.subListaIter.Siguiente().clave
+		if !i.subListaIter.HaySiguiente() {
+			i.proxIndexOcupado()
+		}
+		return clave
+	} else if i.HaySiguiente() {
+		i.proxIndexOcupado()
+		return i.subListaIter.VerActual().clave
+	}
+	panic("El iterador termino de iterar")
+}
+
+func (i *iteradorHash[K, V]) proxIndexOcupado() {
+	i.index++
+	for i.index < len(i.hashEstructura) && i.hashEstructura[i.index].EstaVacia() {
+		i.index++
+	}
+	if i.index == len(i.hashEstructura) {
+		i.subListaIter = nil
+	} else {
+		i.subListaIter = i.hashEstructura[i.index].Iterador()
+	}
 }
 
 // CrearHash + Otras funciones privadas
 
 func CrearHash[K comparable, V any]() Diccionario[K, V] {
 	h := new(hashMap[K, V])
-	h.hashArray = make([]lista.Lista[hashDato[K, V]], 89)
+	h.hashArray = make([]lista.Lista[hashDato[K, V]], LONGITUD_INICIAL)
 	for i := range h.hashArray {
 		h.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
 	}
