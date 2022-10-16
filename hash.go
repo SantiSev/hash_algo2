@@ -18,7 +18,7 @@ type hashDato[K comparable, V any] struct {
 }
 
 type hashMap[K comparable, V any] struct {
-	hashArray []lista.Lista[hashDato[K, V]] //todo O(1) tonces todo bien 8)
+	hashArray []lista.Lista[hashDato[K, V]]
 	longitud  int
 }
 
@@ -30,77 +30,30 @@ type iteradorHash[K comparable, V any] struct {
 
 // Implementacion de HashMap
 
-// TODO sacar la func de hashing (y compania) del tda.
-func (h hashMap[K, V]) convertir(T any) int {
-	dato := convertirABytes[K](T)
-	index := h.sdbmHash(dato)
-	if index < 0 {
-		index *= -1
-	}
-	return index
-}
-
-func convertirABytes[K comparable](clave any) []byte {
-	return []byte(fmt.Sprintf("%v", clave))
-}
-
-func (h hashMap[K, V]) sdbmHash(data []byte) int {
-	// documentacion: https://www.programmingalgorithms.com/algorithm/sdbm-hash/c/
-	var hash uint64
-
-	for _, b := range data {
-		hash = uint64(b) + (hash << 6) + (hash << 16) - hash
-	}
-
-	return int(hash) % len(h.hashArray)
-}
-
 func (h *hashMap[K, V]) actualizar(clave K, valorActualizado V) {
-	index := h.convertir(clave)
+	index := convertir(clave, len(h.hashArray))
 	listaIndex := h.hashArray[index]
 	for iter := listaIndex.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
 		if iter.VerActual().clave == clave {
 			iter.Borrar()
 			iter.Insertar(hashDato[K, V]{clave: clave, valor: valorActualizado})
-
 		}
 	}
 }
 
-//func (h *hashMap[K, V]) redimensionar(valorARedimensionar int) {
-//	redim := new(hashMap[K, V])
-//	redim.hashArray = make([]lista.Lista[hashDato[K, V]], valorARedimensionar)
-//	for i := range redim.hashArray {
-//		redim.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
-//	}
-//	redim.longitud = h.longitud
-//	for _, subLista := range h.hashArray {
-//		for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
-//			datoActual := iter.VerActual()
-//			redim.Guardar(datoActual.clave, datoActual.valor)
-//		}
-//	}
-//	h = redim
-//}
-
 func (h *hashMap[K, V]) Guardar(clave K, valor V) {
 	nuevoDato := &hashDato[K, V]{clave: clave, valor: valor}
-	index := h.convertir(clave)
+	index := convertir(clave, len(h.hashArray))
 	if h.Pertenece(clave) {
 		h.actualizar(clave, valor)
 		return
 	}
-
 	h.hashArray[index].InsertarPrimero(*nuevoDato)
-
-	//if h.hashArray[index].Largo() >= REDIMENSION_AGRANDAR {
-	//	h.redimensionar(proxPrimo(h.longitud * 2))
-	//}
 	h.longitud++
 }
 
 func (h hashMap[K, V]) Pertenece(clave K) bool {
-	index := h.convertir(clave)
+	index := convertir(clave, len(h.hashArray))
 	listaIndex := h.hashArray[index]
 	if listaIndex.EstaVacia() {
 		return false
@@ -115,7 +68,7 @@ func (h hashMap[K, V]) Pertenece(clave K) bool {
 }
 
 func (h *hashMap[K, V]) Obtener(clave K) V {
-	index := h.convertir(clave)
+	index := convertir(clave, len(h.hashArray))
 	subLista := h.hashArray[index]
 	if subLista.EstaVacia() {
 		panic("La clave no pertenece al diccionario")
@@ -129,7 +82,7 @@ func (h *hashMap[K, V]) Obtener(clave K) V {
 }
 
 func (h *hashMap[K, V]) Borrar(clave K) V {
-	index := h.convertir(clave)
+	index := convertir(clave, len(h.hashArray))
 	subLista := h.hashArray[index]
 	if subLista.EstaVacia() {
 		panic("La clave no pertenece al diccionario")
@@ -137,9 +90,6 @@ func (h *hashMap[K, V]) Borrar(clave K) V {
 	for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
 		if iter.VerActual().clave == clave {
 			dato := iter.Borrar()
-			//if MINIMO_REDIMENSION*h.Cantidad() <= len(h.hashArray) && MINIMO_REDIMENSION*h.Cantidad() >= LONGITUD_INICIAL {
-			//	h.redimensionar(proxPrimo(h.longitud / 2))
-			//}
 			h.longitud--
 			return dato.valor
 		}
@@ -152,7 +102,6 @@ func (h hashMap[K, V]) Cantidad() int {
 }
 
 func (h hashMap[K, V]) Iterar(f func(clave K, valor V) bool) {
-
 	for _, subLista := range h.hashArray {
 		if !subLista.EstaVacia() {
 			for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
@@ -178,8 +127,6 @@ func (h hashMap[K, V]) Iterador() IterDiccionario[K, V] {
 	return iter
 }
 
-// Implementacion de iter Externo
-
 func (i iteradorHash[K, V]) HaySiguiente() bool {
 
 	if i.subListaIter == nil {
@@ -197,6 +144,8 @@ func (i iteradorHash[K, V]) HaySiguiente() bool {
 	}
 	return true
 }
+
+// Implementacion de iter Externo
 
 func (i iteradorHash[K, V]) VerActual() (K, V) {
 	if i.subListaIter != nil {
@@ -220,6 +169,17 @@ func (i *iteradorHash[K, V]) Siguiente() K {
 	panic("El iterador termino de iterar")
 }
 
+// CrearHash + Otras funciones privadas
+
+func CrearHash[K comparable, V any]() Diccionario[K, V] {
+	h := new(hashMap[K, V])
+	h.hashArray = make([]lista.Lista[hashDato[K, V]], LONGITUD_INICIAL)
+	for i := range h.hashArray {
+		h.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
+	}
+	return h
+}
+
 func (i *iteradorHash[K, V]) proxIndexOcupado() {
 	i.index++
 	for i.index < len(i.hashEstructura) && i.hashEstructura[i.index].EstaVacia() {
@@ -232,15 +192,27 @@ func (i *iteradorHash[K, V]) proxIndexOcupado() {
 	}
 }
 
-// CrearHash + Otras funciones privadas
-
-func CrearHash[K comparable, V any]() Diccionario[K, V] {
-	h := new(hashMap[K, V])
-	h.hashArray = make([]lista.Lista[hashDato[K, V]], LONGITUD_INICIAL)
-	for i := range h.hashArray {
-		h.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
+func convertir(T any, longitud int) int {
+	dato := convertirABytes(T)
+	index := sdbmHash(dato, longitud)
+	if index < 0 {
+		index *= -1
 	}
-	return h
+	return index
+}
+
+func convertirABytes(clave any) []byte {
+	return []byte(fmt.Sprintf("%v", clave))
+}
+
+func sdbmHash(data []byte, longitud int) int {
+	// documentacion: https://www.programmingalgorithms.com/algorithm/sdbm-hash/c/
+	var hash uint64
+
+	for _, b := range data {
+		hash = uint64(b) + (hash << 6) + (hash << 16) - hash
+	}
+	return int(hash) % longitud
 }
 
 func esPrimo(n int) bool {
