@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	LONGITUD_INICIAL     = 1000
-	REDIMENSION_AGRANDAR = 10
+	LONGITUD_INICIAL     = 23
+	REDIMENSION_AGRANDAR = 5
 	MINIMO_REDIMENSION   = 4
 )
 
@@ -50,6 +50,9 @@ func (h *hashMap[K, V]) Guardar(clave K, valor V) {
 	}
 	h.hashArray[index].InsertarPrimero(*nuevoDato)
 	h.longitud++
+	if h.hashArray[index].Largo() >= REDIMENSION_AGRANDAR {
+		h.redimesionar(proxPrimo(len(h.hashArray) * 2))
+	}
 }
 
 func (h hashMap[K, V]) Pertenece(clave K) bool {
@@ -91,6 +94,9 @@ func (h *hashMap[K, V]) Borrar(clave K) V {
 		if iter.VerActual().clave == clave {
 			dato := iter.Borrar()
 			h.longitud--
+			if h.longitud*MINIMO_REDIMENSION <= len(h.hashArray) && h.longitud*MINIMO_REDIMENSION > LONGITUD_INICIAL {
+				h.redimesionar(proxPrimo(h.longitud / 2))
+			}
 			return dato.valor
 		}
 	}
@@ -143,6 +149,20 @@ func (i iteradorHash[K, V]) HaySiguiente() bool {
 		}
 	}
 	return true
+}
+
+func (h *hashMap[K, V]) redimesionar(nuevoLen int) {
+	nuevoHash := new(hashMap[K, V])
+	nuevoHash.hashArray = make([]lista.Lista[hashDato[K, V]], nuevoLen)
+	for i := range nuevoHash.hashArray {
+		nuevoHash.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
+	}
+	for _, subLista := range h.hashArray {
+		for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
+			nuevoHash.Guardar(iter.VerActual().clave, iter.VerActual().valor)
+		}
+	}
+	h.hashArray = nuevoHash.hashArray
 }
 
 // Implementacion de iter Externo
