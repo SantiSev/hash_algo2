@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	LONGITUD_INICIAL     = 23
-	REDIMENSION_AGRANDAR = 5
-	MINIMO_REDIMENSION   = 4
+	_LONGITUD_INICIAL     = 23
+	_REDIMENSION_AGRANDAR = 5
+	_CUADRUPLE            = 4
 )
 
 type hashDato[K comparable, V any] struct {
@@ -30,17 +30,6 @@ type iteradorHash[K comparable, V any] struct {
 
 // Implementacion de HashMap
 
-func (h *hashMap[K, V]) actualizar(clave K, valorActualizado V) {
-	index := convertir(clave, len(h.hashArray))
-	listaIndex := h.hashArray[index]
-	for iter := listaIndex.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
-		if iter.VerActual().clave == clave {
-			iter.Borrar()
-			iter.Insertar(hashDato[K, V]{clave: clave, valor: valorActualizado})
-		}
-	}
-}
-
 func (h *hashMap[K, V]) Guardar(clave K, valor V) {
 	nuevoDato := &hashDato[K, V]{clave: clave, valor: valor}
 	index := convertir(clave, len(h.hashArray))
@@ -50,8 +39,19 @@ func (h *hashMap[K, V]) Guardar(clave K, valor V) {
 	}
 	h.hashArray[index].InsertarPrimero(*nuevoDato)
 	h.longitud++
-	if h.hashArray[index].Largo() >= REDIMENSION_AGRANDAR {
+	if h.hashArray[index].Largo() >= _REDIMENSION_AGRANDAR {
 		h.redimesionar(proxPrimo(len(h.hashArray) * 2))
+	}
+}
+
+func (h *hashMap[K, V]) actualizar(clave K, valorActualizado V) {
+	index := convertir(clave, len(h.hashArray))
+	listaIndex := h.hashArray[index]
+	for iter := listaIndex.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
+		if iter.VerActual().clave == clave {
+			iter.Borrar()
+			iter.Insertar(hashDato[K, V]{clave: clave, valor: valorActualizado})
+		}
 	}
 }
 
@@ -94,7 +94,7 @@ func (h *hashMap[K, V]) Borrar(clave K) V {
 		if iter.VerActual().clave == clave {
 			dato := iter.Borrar()
 			h.longitud--
-			if h.longitud*MINIMO_REDIMENSION <= len(h.hashArray) && h.longitud*MINIMO_REDIMENSION > LONGITUD_INICIAL {
+			if h.longitud*_CUADRUPLE <= len(h.hashArray) && h.longitud*_CUADRUPLE > _LONGITUD_INICIAL {
 				h.redimesionar(proxPrimo(h.longitud / 2))
 			}
 			return dato.valor
@@ -133,6 +133,22 @@ func (h hashMap[K, V]) Iterador() IterDiccionario[K, V] {
 	return iter
 }
 
+func (h *hashMap[K, V]) redimesionar(nuevoLen int) {
+	nuevoHash := new(hashMap[K, V])
+	nuevoHash.hashArray = make([]lista.Lista[hashDato[K, V]], nuevoLen)
+	for i := range nuevoHash.hashArray {
+		nuevoHash.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
+	}
+	for _, subLista := range h.hashArray {
+		for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
+			nuevoHash.Guardar(iter.VerActual().clave, iter.VerActual().valor)
+		}
+	}
+	h.hashArray = nuevoHash.hashArray
+}
+
+// Implementacion de iter Externo
+
 func (i iteradorHash[K, V]) HaySiguiente() bool {
 
 	if i.subListaIter == nil {
@@ -150,22 +166,6 @@ func (i iteradorHash[K, V]) HaySiguiente() bool {
 	}
 	return true
 }
-
-func (h *hashMap[K, V]) redimesionar(nuevoLen int) {
-	nuevoHash := new(hashMap[K, V])
-	nuevoHash.hashArray = make([]lista.Lista[hashDato[K, V]], nuevoLen)
-	for i := range nuevoHash.hashArray {
-		nuevoHash.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
-	}
-	for _, subLista := range h.hashArray {
-		for iter := subLista.Iterador(); iter.HaySiguiente(); iter.Siguiente() {
-			nuevoHash.Guardar(iter.VerActual().clave, iter.VerActual().valor)
-		}
-	}
-	h.hashArray = nuevoHash.hashArray
-}
-
-// Implementacion de iter Externo
 
 func (i iteradorHash[K, V]) VerActual() (K, V) {
 	if i.subListaIter != nil {
@@ -189,15 +189,25 @@ func (i *iteradorHash[K, V]) Siguiente() K {
 	panic("El iterador termino de iterar")
 }
 
-// CrearHash + Otras funciones privadas
+// CrearHash + funcion de hashing + Otras funciones privadas
 
 func CrearHash[K comparable, V any]() Diccionario[K, V] {
 	h := new(hashMap[K, V])
-	h.hashArray = make([]lista.Lista[hashDato[K, V]], LONGITUD_INICIAL)
+	h.hashArray = make([]lista.Lista[hashDato[K, V]], _LONGITUD_INICIAL)
 	for i := range h.hashArray {
 		h.hashArray[i] = lista.CrearListaEnlazada[hashDato[K, V]]()
 	}
 	return h
+}
+
+func sdbmHash(data []byte, longitud int) int {
+	// documentacion: https://www.programmingalgorithms.com/algorithm/sdbm-hash/c/
+	var hash uint64
+
+	for _, b := range data {
+		hash = uint64(b) + (hash << 6) + (hash << 16) - hash
+	}
+	return int(hash) % longitud
 }
 
 func (i *iteradorHash[K, V]) proxIndexOcupado() {
@@ -223,16 +233,6 @@ func convertir(T any, longitud int) int {
 
 func convertirABytes(clave any) []byte {
 	return []byte(fmt.Sprintf("%v", clave))
-}
-
-func sdbmHash(data []byte, longitud int) int {
-	// documentacion: https://www.programmingalgorithms.com/algorithm/sdbm-hash/c/
-	var hash uint64
-
-	for _, b := range data {
-		hash = uint64(b) + (hash << 6) + (hash << 16) - hash
-	}
-	return int(hash) % longitud
 }
 
 func esPrimo(n int) bool {
